@@ -5,3 +5,5 @@ To run:
 1. Clone this repo
 2. Run 'npm install'
 3. Run 'npm run test'
+4. If you are not running the new version of the Jolie DatabaseService (https://github.com/Maje419/jolie), all tests related to transactions should fail.
+5. To install test with the new version of the DatabaseService, follow the guide for 'compiling from source' here: https://www.jolie-lang.org/downloads.html - Remember to clone the Maje419/jolie repository inststead in the first step.
