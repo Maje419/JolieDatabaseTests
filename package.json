@@ -3,6 +3,9 @@
     "@jolie/jot": "^0.0.25"
   },
   "scripts": {
-    "test": "jot testHSQL.json"
+    "testHSQL": "jot testFunctionalityHSQLDB.json",
+    "testPSQL": "jot testFunctionalityPostgres.json",
+    "timeHSQL": "jot testTimeHSQLDB.json",
+    "timePSQL": "jot testTimePostgres.json"
   }
 }

@@ -1,7 +1,7 @@
 from database import Database, ConnectionInfo
 from console import Console
 
-from .assertions import Assertions
+from ..assertions import Assertions
 
 interface TestInterface {
     RequestResponse:
@@ -47,6 +47,9 @@ interface TestInterface {
     rolling_back_a_transaction_discards_the_transaction_handle(void)(void) throws AssertionError,
 
     /// @Test
+    rolling_back_a_transaction_discards_any_changes_made_in_it(void)(void) throws AsssertionError,
+
+    /// @Test
     can_provide_hikari_configs(void)(void) throws AssertionError,
 
     /// @Test
@@ -57,10 +60,9 @@ interface TestInterface {
 
     /// @Test
     provoking_a_connection_leak_throws_an_exception(void)(void) throws AssertionError,
-
 }
 
-type lol{
+type TestParams{
     username: string
     password: string
     database: string
@@ -68,7 +70,7 @@ type lol{
     host: string
 }
 
-service TestDatabase(p: lol){
+service TestDatabase(p: TestParams){
     execution: sequential
     inputPort Input {
         Location: "local"
@@ -84,8 +86,10 @@ service TestDatabase(p: lol){
             println@Console("Connecting to db: " + p.database)()
             connect@Database(p)()
             update@Database("CREATE TABLE IF NOT EXISTS testTable(id INTEGER, testString VARCHAR(50));")()
-            update@Database("SET DATABASE TRANSACTION CONTROL MVCC;")()
-        }]
+            if (p.driver == "hsqldb_embedded"){
+                update@Database("SET DATABASE TRANSACTION CONTROL MVCC;")()
+            }
+        }]  
 
         [clear_tables()(){
             connect@Database(p)()
@@ -244,7 +248,7 @@ service TestDatabase(p: lol){
             // Arrange
             s << 
             {
-                query = "INSERT INTO testTable(id, testString) VALUES (42, 'NewTestUser');"
+                update = "INSERT INTO testTable(id, testString) VALUES (42, 'NewTestUser');"
             }
             beginTx@Database()(s.txHandle)
 
@@ -271,7 +275,7 @@ service TestDatabase(p: lol){
             // Arrange
             s << 
             {
-                query = "INSERT INTO testTable(id, testString) VALUES (42, 'NewTestUser');"
+                update = "INSERT INTO testTable(id, testString) VALUES (42, 'NewTestUser');"
             }
             beginTx@Database()(s.txHandle)
             update@Database(s)(o)
@@ -301,7 +305,7 @@ service TestDatabase(p: lol){
             // Arrange
             s << 
             {
-                query = "INSERT INTO testTable(id, testString) VALUES (42, 'NewTestUser');"
+                update = "INSERT INTO testTable(id, testString) VALUES (42, 'NewTestUser');"
             }
             beginTx@Database()(s.txHandle)
             update@Database(s)(o)
@@ -327,6 +331,33 @@ service TestDatabase(p: lol){
                 actual = ShouldThrow.TransactionException
                 expected = "TransactionException"
                 message = "Expected a TransactionException when trying to query a rolled-back transaction"
+            })()
+        }]
+
+        [rolling_back_a_transaction_discards_any_changes_made_in_it()(){
+            // Arrange
+            s << 
+            {
+                update = "INSERT INTO testTable(id, testString) VALUES (42, 'NewTestUser');"
+            }
+            beginTx@Database()(s.txHandle)
+            update@Database(s)(o)
+
+            // Act
+            rollbackTx@Database(s.txHandle)()
+
+            // Assert
+            query@Database("SELECT * FROM testTable;")(queryAfterCommit)
+            
+            scope (ShouldThrow){
+                install(TransactionException => {x = true})
+                query@Database("SELECT * FROM testTable;")(queryResponse)
+            }
+
+            equals@Assertions({
+                actual = #queryResponse.row
+                expected = 1
+                message = "Expected to find a single enty in the database, but found " + #queryResponse.row
             })()
         }]
 
