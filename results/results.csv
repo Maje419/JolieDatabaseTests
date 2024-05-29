@@ -1,0 +1,8 @@
+query_time_500_entries 590
+insert_time_500_entries_transaction 108
+query_time_500_entries_transaction 420
+delete_time_500_entries 444
+insert_time_500_entries 399
+delete_time_500_entries_transaction 59
+update_time_500_entries 882
+update_time_500_entries_transaction 1361
