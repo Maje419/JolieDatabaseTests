@@ -9,30 +9,24 @@ def getMean(path: str) -> pd.DataFrame:
     df = pd.read_csv(filepath_or_buffer=path, sep=' ')
     return df.groupby("test").mean()
 
-noConnectionpoolDf = getMean("results/noConnectionPool.csv")
-connectionPoolDf = getMean("results/connectionPool.csv")
-
-print(connectionPoolDf.values.flatten())
-print(noConnectionpoolDf.values.flatten())
+noConnectionpoolDf = getMean("results/JDBC_HSQL.csv")
+connectionPoolDf = getMean("results/Hikari_HSQL.csv")
 
 index = connectionPoolDf.columns
 
-dfNew = pd.merge(noConnectionpoolDf, connectionPoolDf, on='test', how="right")
+dfNew = pd.merge(noConnectionpoolDf, connectionPoolDf, on='test', how="inner")
 
-print(dfNew.columns)
-
-dfNew.columns = ["No Connection Pool", "Connection Pool"]
-
-dfNew = dfNew.sort_values(by='No Connection Pool', ascending=False)
+dfNew.columns = ["JDBC implementation", "HikariCP implementation"]
 
 ax = dfNew.plot(kind="barh", logx=True, rot=0)
 
 ax.set_xlabel("Avg. ms")
 
-print(ax.containers)
+patches = [" \\\\ ", "//"]
 
 for bars in ax.containers:
     ax.bar_label(bars, padding=5)
+
 
 plt.savefig("mean_ms_for_db_operations.png")
 plt.show()
