@@ -36,6 +36,9 @@ interface TimedTestsInterface {
     update_time_500_entries_transaction(void)(void),
 
     /// @Test
+    update_time_500_entries_executeTransaction(void)(void),
+
+    /// @Test
     delete_time_500_entries_transaction(void)(void),
 
     /// @Test
@@ -247,6 +250,22 @@ service TimedTests(p: TestParams){
                 i++
             }
             commitTx@Database(txHandle)()
+            getCurrentTimeMillis@Time()(time2)
+            global.results = global.results + " " + (time2 - time) + "\n"
+        }]
+
+        [update_time_500_entries_executeTransaction()(){
+            global.results = global.results + "update_time_500_entries_executeTransaction"
+
+            getCurrentTimeMillis@Time()(time)
+
+            i = 0
+            while (i < 500){
+                update.statement[i] = "UPDATE testTable SET teststring = 'UpdatedUsername " + i + "'  where id = " + i + ";"
+                i++
+            }
+            
+            executeTransaction@Database(update)()
             getCurrentTimeMillis@Time()(time2)
             global.results = global.results + " " + (time2 - time) + "\n"
         }]

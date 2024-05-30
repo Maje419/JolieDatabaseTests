@@ -1,5 +1,2 @@
-<<<<<<< HEAD
 node_modules
-=======
-node_modules
->>>>>>> 2f54a86102fda2d80a25a6c3f53eb60fa1ac9a47
+*.png
