@@ -15,27 +15,46 @@ interface TimedTestsInterface {
     populate_tables(void)(void),
 
     /// @Test
-    query_time_1000_entries(void)(void) throws AssertionError,
+    query_time_500_entries(void)(void) throws AssertionError,
 
+    
     /// @Test
-    update_time_1000_entries(void)(void) throws AssertionError,
+    update_time_500_entries(void)(void) throws AssertionError,
 
+    
     /// @Test
-    delete_time_1000_entries(void)(void) throws AssertionError,
+    delete_time_500_entries(void)(void) throws AssertionError,
 
+    
     /// @Test
-    insert_time_1000_entries(void)(void) throws AssertionError,
+    insert_time_500_entries(void)(void) throws AssertionError,
+    
+    
+    /// @Test
+    query_time_500_entries_transaction(void)(void) throws AssertionError,
 
+    
     /// @Test
+    update_time_500_entries_transaction(void)(void) throws AssertionError,
+
+    
+    /// @Test
+    delete_time_500_entries_transaction(void)(void) throws AssertionError,
+
+    
+    /// @Test
+    insert_time_500_entries_transaction(void)(void) throws AssertionError,
+
+    
     example_no_transaction(void)(void),
 
-    /// @Test
+    
     example_transaction(void)(void),
 
-    /// @Test
+    
     ten_transactions_simultaniously_old(void)(void),
 
-    /// @Test
+    
     ten_transactions_simultaniously_new(void)(void),
 
     /// @AfterAll
@@ -68,23 +87,28 @@ service TimedTests(p: TestParams){
             global.results = ""
             println@Console("Connecting to db: " + p.database)()
             connect@Database(p)()
+            println@Console("Connected to db: " + p.database)()
             update@Database("CREATE TABLE IF NOT EXISTS testTable(id INTEGER, testString VARCHAR(50));")()
             if (p.driver == "hsqldb_embedded"){
                 update@Database("SET DATABASE TRANSACTION CONTROL MVCC;")()
             }
+            close@Database()()
         }]  
 
         [populate_tables()(){
             connect@Database(p)()
             update@Database("DELETE FROM testTable WHERE true;")()
             i = 0;
-            while (i < 1000){
+            while (i < 500){
                 update@Database("INSERT INTO testTable(id, testString) VALUES ( " + i + ", 'testUser');")()
-                i += 1
+                i++
             }
+            println@Console("Database Populated")()
         }]
 
         [write_results()(){
+            close@Database()()
+
             readFile@File({
                 .filename = "results/results.csv"
             })(results)
@@ -97,11 +121,15 @@ service TimedTests(p: TestParams){
             writeFile@File(writeFileRequest)()
         }]
 
-        [query_time_1000_entries()(){
-            global.results = global.results + "query_time_1000_entries"
+        [query_time_500_entries()(){
+            global.results = global.results + "query_time_500_entries"
             getCurrentTimeMillis@Time()(time)
-
-            query@Database("Select * from testTable")(res)
+            
+            i = 0
+            while (i < 500){
+                query@Database("Select * from testTable")(res)
+                i++
+            }
             
             getCurrentTimeMillis@Time()(time2)
             global.results = global.results + " " + (time2 - time)
@@ -109,37 +137,14 @@ service TimedTests(p: TestParams){
 
         }]
 
-        [update_time_1000_entries()(){
-            global.results = global.results + "update_time_1000_entries"
-
+        [insert_time_500_entries()(){
+            global.results = global.results + "insert_time_500_entries"
             getCurrentTimeMillis@Time()(time)
 
-            update@Database("UPDATE testTable SET teststring = 'UpdatedUsername' where id > 0;")(res)
-            
-            getCurrentTimeMillis@Time()(time2)
-            global.results = global.results + " " + (time2 - time) + "\n"
-        }]
-
-        [delete_time_1000_entries()(){
-            global.results = global.results + "delete_time_1000_entries"
-
-            getCurrentTimeMillis@Time()(time)
-
-            update@Database("DELETE FROM testTable WHERE true;")(res)
-
-            getCurrentTimeMillis@Time()(time2)
-            global.results = global.results + " " + (time2 - time) + "\n"
-        }]
-
-        [insert_time_1000_entries()(){
-            global.results = global.results + "insert_time_1000_entries"
-
-            getCurrentTimeMillis@Time()(time)
-
-            i = 1000
-            while (i < 2000){
+            i = 0
+            while (i < 500){
                 update@Database("INSERT INTO testTable(id, testString) VALUES ( " + i + ", 'testUser');")()
-                i += 1
+                i++
             }
 
             getCurrentTimeMillis@Time()(time2)
@@ -147,13 +152,120 @@ service TimedTests(p: TestParams){
 
         }]
 
+        [update_time_500_entries()(){
+            global.results = global.results + "update_time_500_entries"
+
+            getCurrentTimeMillis@Time()(time)
+
+            i = 0
+            while (i < 500){
+                update@Database("UPDATE testTable SET teststring = 'UpdatedUsername " + i + "'  where id = " + i + ";")(res)
+                i++
+            }
+            getCurrentTimeMillis@Time()(time2)
+            global.results = global.results + " " + (time2 - time) + "\n"
+        }]
+
+        [delete_time_500_entries()(){
+            global.results = global.results + "delete_time_500_entries"
+
+            getCurrentTimeMillis@Time()(time)
+
+            i = 0
+            while (i < 500){
+                update@Database("DELETE FROM testTable WHERE id = " + i + ";")(res)
+                i++
+            }
+
+            getCurrentTimeMillis@Time()(time2)
+            global.results = global.results + " " + (time2 - time) + "\n"
+        }]
+
+        [insert_time_500_entries_transaction()(){
+            global.results = global.results + "insert_time_500_entries_transaction"
+
+            getCurrentTimeMillis@Time()(time)
+
+            i = 0
+            beginTx@Database()(txHandle)
+            while (i < 500){
+                update@Database({
+                    txHandle = txHandle
+                    update="INSERT INTO testTable(id, testString) VALUES ( " + i + ", 'testUser');"
+                    })()
+                i++
+            }
+            commitTx@Database(txHandle)()
+
+            getCurrentTimeMillis@Time()(time2)
+            global.results = global.results + " " + (time2 - time) + "\n"
+
+        }]
+
+        [query_time_500_entries_transaction()(){
+            global.results = global.results + "query_time_500_entries_transaction"
+            getCurrentTimeMillis@Time()(time)
+            
+            i = 0
+            beginTx@Database()(txHandle)
+            while (i < 500){
+                query@Database( {txHandle=txHandle
+                query="Select * from testTable"})(res)
+                i++
+            }
+            commitTx@Database(txHandle)()
+            getCurrentTimeMillis@Time()(time2)
+            global.results = global.results + " " + (time2 - time)
+            global.results = global.results + "\n"
+
+        }]
+
+        [update_time_500_entries_transaction()(){
+            global.results = global.results + "update_time_500_entries_transaction"
+
+            getCurrentTimeMillis@Time()(time)
+
+            beginTx@Database()(txHandle)
+            i = 0
+            while (i < 500){
+                update@Database({txHandle=txHandle
+                update="UPDATE testTable SET teststring = 'UpdatedUsername " + i + "'  where id = " + i + ";"})(res)
+                i++
+            }
+            commitTx@Database(txHandle)()
+            getCurrentTimeMillis@Time()(time2)
+            global.results = global.results + " " + (time2 - time) + "\n"
+        }]
+
+        [delete_time_500_entries_transaction()(){
+            global.results = global.results + "delete_time_500_entries_transaction"
+
+            getCurrentTimeMillis@Time()(time)
+            beginTx@Database()(txHandle)
+
+            i = 0
+            while (i < 500){
+                update@Database({txHandle=txHandle
+                update="DELETE FROM testTable WHERE id = " + i + ";"})(res)
+                i++
+            }
+            commitTx@Database(txHandle)()
+
+            getCurrentTimeMillis@Time()(time2)
+            global.results = global.results + " " + (time2 - time) + "\n"
+        }]
+
         [example_no_transaction()(){
             global.results = global.results + "query_update_no_transaction"
 
             getCurrentTimeMillis@Time()(time)
 
-            query@Database("SELECT * FROM testTable WHERE id = 500")()
-            update@Database("UPDATE testTable SET testString = 'SomenewName' WHERE id = 500;")()
+            i = 0
+            while (i < 500){
+                query@Database("SELECT * FROM testTable WHERE id = 500")()
+                update@Database("UPDATE testTable SET testString = 'SomenewName' WHERE id = 500;")()
+                i++
+            }
 
             getCurrentTimeMillis@Time()(time2)
             global.results = global.results + " " + (time2 - time) + "\n"
